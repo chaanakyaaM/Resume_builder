@@ -1,0 +1,13 @@
+[project]
+name = "resume-builder"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "docx2pdf>=0.1.8",
+    "docxtpl>=0.20.1",
+    "mammoth>=1.9.1",
+    "python-docx>=1.2.0",
+    "streamlit>=1.47.0",
+]
