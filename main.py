@@ -110,6 +110,7 @@ if st.button("Generate DOCX Resume"):
 
     if docx_io:
         # Preview using Mammoth
+        st.markdown("- Note: The preview may not be perfect due to formatting limitations.You can see the generated resume after downloading it")
         try:
             result = mammoth.convert_to_html(docx_io)
             html_content = result.value
