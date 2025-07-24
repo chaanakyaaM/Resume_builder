@@ -1,7 +1,7 @@
 [project]
 name = "resume-builder"
 version = "0.1.0"
-description = "Add your description here"
+description = "A simple web application to build resumes "
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [

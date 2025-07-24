@@ -56,13 +56,8 @@ def generate_resume_docx(data):
         template_data["linkedin"] = linkedin_hyperlink
         template_data["github"] = github_hyperlink
         
-        # Debug: Print what's being passed to template
-        # st.write("**Debug - Template Data:**")
-        # debug_data = template_data.copy()
-        # debug_data["linkedin"] = f"RichText object for: {data.get('linkedin', 'N/A')}"
-        # debug_data["github"] = f"RichText object for: {data.get('github', 'N/A')}"
+       
         st.json(template_data)
-        # st.write(data.get("educations", "No education data found"))
         
         # Render the document
         doc.render(template_data)
