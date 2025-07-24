@@ -383,7 +383,6 @@ if st.button("🔄 Generate DOCX Resume", type="primary", use_container_width=Tr
             docx_io.seek(0)
             
             st.success("✅ DOCX Resume generated successfully!")
-            st.success("📁 Resume saved as 'generated_output.docx' in the current directory")
             
             # Create download button
             st.download_button(
