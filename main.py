@@ -1,5 +1,5 @@
 import streamlit as st
-from docxtpl import DocxTemplate
+from docxtpl import DocxTemplate, RichText
 import os
 import mammoth
 from io import BytesIO
@@ -27,7 +27,59 @@ def validate_url(url):
         return f"https://{url}"
     return url
 
-# Personal Information
+# Function to create RichText hyperlink
+def create_hyperlink(doc, text, url):
+    """Create a RichText hyperlink with blue color and underline"""
+    if not url:
+        return text
+    
+    rt = RichText()
+    rt.add(text, url_id=doc.build_url_id(url), color="0000FF", underline=True)
+    return rt
+
+# Function to generate DOCX from template
+def generate_resume_docx(data):
+    try:
+        if not os.path.exists("temp.docx"):
+            st.error("❌ Template file 'temp.docx' not found. Please ensure the template file is in the same directory as this script.")
+            return None
+
+        # Create a new DocxTemplate instance
+        doc = DocxTemplate("temp.docx")
+        
+        # Create RichText hyperlinks for LinkedIn and GitHub
+        linkedin_hyperlink = create_hyperlink(doc, "LinkedIn", data.get("linkedin", ""))
+        github_hyperlink = create_hyperlink(doc, "GitHub", data.get("github", ""))
+        
+        # Update data with RichText hyperlinks
+        template_data = data.copy()
+        template_data["linkedin"] = linkedin_hyperlink
+        template_data["github"] = github_hyperlink
+        
+        # Debug: Print what's being passed to template
+        # st.write("**Debug - Template Data:**")
+        # debug_data = template_data.copy()
+        # debug_data["linkedin"] = f"RichText object for: {data.get('linkedin', 'N/A')}"
+        # debug_data["github"] = f"RichText object for: {data.get('github', 'N/A')}"
+        st.json(template_data)
+        # st.write(data.get("educations", "No education data found"))
+        
+        # Render the document
+        doc.render(template_data)
+        
+        doc.save("generated_output.docx")
+        
+        # Also create BytesIO for download
+        docx_io = BytesIO()
+        doc.save(docx_io)
+        docx_io.seek(0)
+        return docx_io
+        
+    except Exception as e:
+        st.error(f"Error generating DOCX: {e}")
+        return None
+
+# Personal Information Section
 st.header("📋 Personal Information")
 c1, c2 = st.columns(2)
 with c1:
@@ -70,7 +122,7 @@ for i in range(int(edu_count)):
         educations.append({
             "degree": degree, 
             "school": school, 
-            "year": edu_year,  # Fixed: changed from "edu_year" to "year" to match template
+            "edu_year": edu_year,
             "score": score
         })
 
@@ -113,24 +165,6 @@ skills = {
     "other_tools": st.text_input("Other Tools & Technologies", placeholder="e.g., Git, Docker, AWS")
 }
 
-# Function to generate DOCX from template
-def generate_resume_docx(data):
-    try:
-        if not os.path.exists("temp.docx"):
-            st.error("❌ Template file 'temp.docx' not found. Please ensure the template file is in the same directory as this script.")
-            return None
-
-        doc = DocxTemplate("temp.docx")
-        doc.render(data)
-
-        docx_io = BytesIO()
-        doc.save(docx_io)
-        docx_io.seek(0)
-        return docx_io
-    except Exception as e:
-        st.error(e)
-        return None
-
 # Validation function
 def validate_required_fields():
     errors = []
@@ -165,7 +199,147 @@ def validate_required_fields():
     
     return errors
 
-# Generate Resume
+# Function to preview DOCX content
+def preview_docx(docx_io):
+    """Preview DOCX content using mammoth"""
+    try:
+        docx_io.seek(0)
+        result = mammoth.convert_to_html(docx_io)
+        html_content = result.value
+
+        styled_html = f"""
+        <html>
+            <head>
+                <style>
+                    body {{
+                        background-color: white;
+                        color: black;
+                        font-family: Calibri, sans-serif;
+                        padding: 20px;
+                        max-width: 800px;
+                        margin: 0 auto;
+                        line-height: 1.6;
+                    }}
+                    h1, h2, h3 {{
+                        color: #2c3e50;
+                    }}
+                    p {{
+                        margin-bottom: 10px;
+                    }}
+                    a {{
+                        color: #3498db;
+                        text-decoration: none;
+                    }}
+                    a:hover {{
+                        text-decoration: underline;
+                    }}
+                </style>
+            </head>
+            <body>
+                {html_content}
+            </body>
+        </html>
+        """
+
+        st.markdown("### 📄 Resume Preview")
+        st.components.v1.html(styled_html, height=600, scrolling=True)
+    except Exception as e:
+        st.warning(f"⚠️ Preview not available: {str(e)}")
+        st.info("Don't worry! You can still download the DOCX file.")
+
+# Sample data section
+st.markdown("---")
+st.markdown("### 📝 Need Help Getting Started?")
+if st.button("Fill with Sample Data", help="Click to populate fields with example data"):
+    if not os.path.exists("temp.docx"):
+        st.error("❌ Template file 'temp.docx' not found. Cannot generate sample data.")
+    else:
+        sample_data = {
+            "first_name": "Jane",
+            "last_name": "Doe",
+            "email": "jane.doe@example.com",
+            "phone_number": "1 (123) 456-7890",
+            "linkedin": "https://linkedin.com/in/janedoe",
+            "github": "https://github.com/janedoe",
+            "summary": "Detail-oriented software engineer with 3+ years of experience building scalable web applications. Passionate about building applications with clean code, performance optimization, and collaborative development.",
+            "projects": [
+                {
+                    "title": "E-Commerce Web App",
+                    "stack": "React, Node.js, MongoDB",
+                    "summary": "• Designed and implemented a full-stack e-commerce platform with secure user authentication, cart system, and order history."
+                },
+                {
+                    "title": "AI Chatbot",
+                    "stack": "Python, TensorFlow, Flask",
+                    "summary": "• Developed a context-aware chatbot using NLP techniques, capable of handling customer service queries in real-time."
+                }
+            ],
+            "experiences": [
+                {
+                    "role": "Software Engineer",
+                    "company": "Tech Solutions Inc.",
+                    "duration": "July 2022 – Present",
+                    "desc": "• Developed RESTful APIs and integrated third-party services\n• Improved application performance by 30% through code refactoring"
+                },
+                {
+                    "role": "Software Engineer",
+                    "company": "Tech Solutions Inc.",
+                    "duration": "July 2022 – Present",
+                    "desc": "• Developed RESTful APIs and integrated third-party services\n• Improved application performance by 30% through code refactoring"
+                }
+            ],
+            "skills": {
+                "programming_languages": "Python, JavaScript, C++",
+                "frameworks": "React, Node.js, Flask",
+                "databases": "MongoDB, PostgreSQL",
+                "other_tools": "Git, Docker, AWS, Linux"
+            },
+            "educations": [
+                {
+                    "degree": "BTech",
+                    "school": "ABC University",
+                    "edu_year": "2018 - 2022",
+                    "score": "CGPA: 8.7/10"
+                },
+                {
+                    "degree": "High School Diploma", 
+                    "school": "XYZ High School",
+                    "edu_year": "2016 - 2018",
+                    "score": " 92%"
+                }
+            ]
+        }
+        
+        docx_io = generate_resume_docx(sample_data)
+        
+        if docx_io:
+            st.info("📋 **Note:** The preview below is only for checking the details and may not show perfect formatting. Download the DOCX file to see the actual formatted resume.")
+            
+            # Preview the document
+            preview_docx(docx_io)
+
+            # Reset BytesIO position for download
+            docx_io.seek(0)
+            
+            st.success("✅ Sample DOCX Resume generated successfully!")
+            
+            st.download_button(
+                label="📥 Download Sample DOCX Resume",
+                data=docx_io.getvalue(),
+                file_name="Sample_Resume.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
+            
+            st.info("💡 **Tips after downloading:**")
+            st.markdown("""
+            • Open the DOCX file in Microsoft Word or Google Docs for final formatting
+            • LinkedIn and GitHub links should be clickable hyperlinks with blue color and underline
+            • Customize fonts, colors, and spacing as needed
+            • Save as PDF when ready to share with employers
+            """)
+
+# Generate Resume Section
 st.markdown("---")
 st.header("📄 Generate Your Resume")
 
@@ -179,13 +353,16 @@ if st.button("🔄 Generate DOCX Resume", type="primary", use_container_width=Tr
             st.error(f"• {error}")
     else:
         # Prepare data for template
+        processed_linkedin = validate_url(linkedin.strip())
+        processed_github = validate_url(github.strip())
+
         data = {
             "first_name": first_name.strip(),
             "last_name": last_name.strip(),
             "email": email.strip(),
             "phone_number": phone.strip(),
-            "linkedin": validate_url(linkedin.strip()) if linkedin.strip() else "",
-            "github": validate_url(github.strip()) if github.strip() else "",
+            "linkedin": processed_linkedin,
+            "github": processed_github,
             "summary": summary.strip(),
             "educations": [edu for edu in educations if edu["degree"].strip() or edu["school"].strip()],
             "experiences": [exp for exp in experiences if exp["role"].strip() or exp["company"].strip()],
@@ -202,211 +379,33 @@ if st.button("🔄 Generate DOCX Resume", type="primary", use_container_width=Tr
             docx_io = generate_resume_docx(data)
 
         if docx_io:
-            # Preview using Mammoth
             st.info("📋 **Note:** The preview below is only for checking the details and may not show perfect formatting. Download the DOCX file to see the actual formatted resume.")
             
-            try:
-                # Reset BytesIO position for reading
-                docx_io.seek(0)
-                result = mammoth.convert_to_html(docx_io)
-                html_content = result.value
-
-                styled_html = f"""
-                <html>
-                    <head>
-                        <style>
-                            body {{
-                                background-color: white;
-                                color: black;
-                                font-family: Calibri, sans-serif;
-                                padding: 20px;
-                                max-width: 800px;
-                                margin: 0 auto;
-                                line-height: 1.6;
-                            }}
-                            h1, h2, h3 {{
-                                color: #2c3e50;
-                            }}
-                            p {{
-                                margin-bottom: 10px;
-                            }}
-                            a {{
-                                color: #3498db;
-                                text-decoration: none;
-                            }}
-                            a:hover {{
-                                text-decoration: underline;
-                            }}
-                        </style>
-                    </head>
-                    <body>
-                        {html_content}
-                    </body>
-                </html>
-                """
-
-                st.markdown("### 📄 Resume Preview")
-                st.components.v1.html(styled_html, height=600, scrolling=True)
-            except Exception as e:
-                st.warning(f"⚠️ Preview not available: {str(e)}")
-                st.info("Don't worry! You can still download the DOCX file below.")
+            # Preview the document
+            preview_docx(docx_io)
 
             # Reset BytesIO position for download
             docx_io.seek(0)
             
-            # Download DOCX
             st.success("✅ DOCX Resume generated successfully!")
+            st.success("📁 Resume saved as 'generated_output.docx' in the current directory")
             
-            # Create columns for download and feedback
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.download_button(
-                    label="📥 Download DOCX Resume",
-                    data=docx_io.getvalue(),
-                    file_name=f"{first_name}_{last_name}_Resume.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    use_container_width=True
-                )
+            # Create download button
+            st.download_button(
+                label="📥 Download DOCX Resume",
+                data=docx_io.getvalue(),
+                file_name=f"{first_name}_{last_name}_Resume.docx" if first_name and last_name else "Resume.docx",
+                mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                use_container_width=True
+            )
             
-            # Additional tips after successful generation
             st.info("💡 **Tips after downloading:**")
-            st.info("• Open the DOCX file in Microsoft Word or Google Docs for final formatting")
-            st.info("• You can manually add hyperlinks by selecting URLs and pressing Ctrl+K")
-            st.info("• Customize fonts, colors, and spacing as needed")
-
-
-# Sample data section
-st.markdown("---")
-st.markdown("### 📝 Need Help Getting Started?")
-if st.button("Fill with Sample Data", help="Click to populate fields with example data"):
-    data = {
-    "first_name": "Jane",
-    "last_name": "Doe",
-    "email": "jane.doe@example.com",
-    "phone_number": "1 (123) 456-7890",
-    "linkedin": "https://linkedin.com/in/janedoe",
-    "github": "https://github.com/janedoe",
-    "summary": "Detail-oriented software engineer with 3+ years of experience building scalable web applications. Passionate about building applications with clean code, performance optimization, and collaborative development.",
-
-    "educations": [
-        {
-            "degree": "Bachelor of Technology in Computer Science",
-            "school": "ABC University",
-            "edu_year": "2018 - 2022",
-            "score": "CGPA: 8.7/10"
-        },
-        {
-            "degree": "High School Diploma",
-            "school": "XYZ High School",
-            "edu_year": "2016 - 2018",
-            "score": "Percentage: 92%"
-        }
-    ],
-
-    "experiences": [
-        {
-            "role": "Software Engineer",
-            "company": "Tech Solutions Inc.",
-            "duration": "July 2022 – Present",
-            "desc": "• Developed RESTful APIs and integrated third-party services\n• Improved application performance by 30% through code refactoring\n• Collaborated with cross-functional teams using Agile methodology"
-        },
-        {
-            "role": "Backend Developer Intern",
-            "company": "Innovate Labs",
-            "duration": "Jan 2022 – May 2022",
-            "desc": "• Built microservices with Node.js and Express\n• Integrated MongoDB for dynamic data storage\n• Wrote unit and integration tests with Jest"
-        }
-    ],
-
-    "projects": [
-        {
-            "title": "E-Commerce Web App",
-            "stack": "React, Node.js, MongoDB",
-            "summary": "• Designed and implemented a full-stack e-commerce platform with secure user authentication, cart system, and order history."
-        },
-        {
-            "title": "AI Chatbot",
-            "stack": "Python, TensorFlow, Flask",
-            "summary": "• Developed a context-aware chatbot using NLP techniques, capable of handling customer service queries in real-time."
-        }
-    ],
-
-    "skills": {
-        "programming_languages": "Python, JavaScript, C++",
-        "frameworks": "React, Node.js, Flask",
-        "databases": "MongoDB, PostgreSQL",
-        "other_tools": "Git, Docker, AWS, Linux"
-    }
-}
-    with st.spinner("Generating your resume..."):
-            docx_io = generate_resume_docx(data)
-    if docx_io:
-            # Preview using Mammoth
-            st.info("📋 **Note:** The preview below is only for checking the details and may not show perfect formatting. Download the DOCX file to see the actual formatted resume.")
-            
-            try:
-                # Reset BytesIO position for reading
-                docx_io.seek(0)
-                result = mammoth.convert_to_html(docx_io)
-                html_content = result.value
-
-                styled_html = f"""
-                <html>
-                    <head>
-                        <style>
-                            body {{
-                                background-color: white;
-                                color: black;
-                                font-family: Calibri, sans-serif;
-                                padding: 20px;
-                                max-width: 800px;
-                                margin: 0 auto;
-                                line-height: 1.6;
-                            }}
-                            h1, h2, h3 {{
-                                color: #2c3e50;
-                            }}
-                            p {{
-                                margin-bottom: 10px;
-                            }}
-                            a {{
-                                color: #3498db;
-                                text-decoration: none;
-                            }}
-                            a:hover {{
-                                text-decoration: underline;
-                            }}
-                        </style>
-                    </head>
-                    <body>
-                        {html_content}
-                    </body>
-                </html>
-                """
-
-                st.markdown("### 📄 Resume Preview")
-                st.components.v1.html(styled_html, height=600, scrolling=True)
-            except Exception as e:
-                st.warning(f"⚠️ Preview not available: {str(e)}")
-                st.info("Don't worry! You can still download the DOCX file below.")
-
-            # Reset BytesIO position for download
-            docx_io.seek(0)
-            
-            # Download DOCX
-            st.success("✅ DOCX Resume generated successfully!")
-            
-            # Create columns for download and feedback
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.download_button(
-                    label="📥 Download DOCX Resume",
-                    data=docx_io.getvalue(),
-                    file_name=f"{first_name}_{last_name}_Resume.docx",
-                    mime="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-                    use_container_width=True
-                )
-            
+            st.markdown("""
+            • Open the DOCX file in Microsoft Word or Google Docs for final formatting
+            • LinkedIn and GitHub links should be clickable hyperlinks with blue color and underline
+            • Customize fonts, colors, and spacing as needed
+            • Save as PDF when ready to share with employers
+            """)
 
 # Footer
 st.markdown("---")
