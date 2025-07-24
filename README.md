@@ -91,25 +91,6 @@ resume-builder/
 - Maintain Jinja2 variable names for compatibility
 - Use Word's formatting tools for professional appearance
 
-
-## 🎨 Features in Detail
-
-### Hyperlink Support:
-- LinkedIn and GitHub URLs are converted to clickable hyperlinks
-- Hyperlinks appear in blue with underline formatting
-- Automatic URL validation and formatting
-
-### Preview System:
-- Real-time HTML preview using mammoth library
-- Styled preview with custom CSS
-- Note: Preview may not show exact Word formatting
-
-### File Management:
-- Dual save system: local file + download button
-- Automatic filename generation based on user name
-- DOCX format for universal compatibility
-
-
 > 💡 **NOTE**: For best results, open the generated DOCX file in Microsoft Word or Google Docs to fine-tune formatting before converting to PDF.
 
 **Credits**
