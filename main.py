@@ -402,7 +402,3 @@ if st.button("🔄 Generate DOCX Resume", type="primary", use_container_width=Tr
             • Customize fonts, colors, and spacing as needed
             • Save as PDF when ready to share with employers
             """)
-
-# Footer
-st.markdown("---")
-st.markdown("*Built with ❤️ by Chaanakyaa M*")
